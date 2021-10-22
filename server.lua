@@ -13,14 +13,6 @@
     #####################################################################
 ]]
 
-function GiveDonatorKeys(source, args, rawCommand)
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
-
-	
-	SaveResourceFile(GetCurrentResourceName(), "playTime.json", json.encode(loadedFile), -1)
-end
-
 SetHttpHandler(function(req, res)
     if req.path == '/info' then
         res.send(LoadResourceFile(GetCurrentResourceName(), "playTime.json"))
