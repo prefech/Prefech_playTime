@@ -7,7 +7,7 @@
     #               | |   | | |  __/ ||  __/ (__| | | |                 #
     #               |_|   |_|  \___|_| \___|\___|_| |_|                 #
     #                                                                   #
-    #            Prefech_DonatorLock By Prefech 28-10-2021              #
+    #             Prefech_playTime By Prefech 28-10-2021                #
     #                         www.prefech.com                           #
     #                                                                   #
     #####################################################################
@@ -82,6 +82,7 @@ function SecondsToClock(seconds)
 	return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)
   end
 
+RegisterNetEvent('playerJoining')
 AddEventHandler('playerJoining', function(spawn)
 	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
 	local loadedFile = json.decode(loadFile)
@@ -106,6 +107,7 @@ AddEventHandler('playerJoining', function(spawn)
 	SaveResourceFile(GetCurrentResourceName(), "playTime.json", json.encode(loadedFile), -1)
 end)
 
+RegisterNetEvent('playerDropped')
 AddEventHandler('playerDropped', function(reason)
 	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
 	local loadedFile = json.decode(loadFile)
