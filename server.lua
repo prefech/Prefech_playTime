@@ -118,6 +118,25 @@ AddEventHandler('playerDropped', function(reason)
 	end
 end)
 
+RegisterNetEvent('Prefech:getIdentifiers')
+AddEventHandler('Prefech:getIdentifiers', function()
+
+	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
+	local loadedFile = json.decode(loadFile)
+	steam = ExtractIdentifiers(source)
+	if loadedFile[steam] then
+		local storedTime = loadedFile[steam].playTime
+		local joinTime = loadedFile[steam].JoinTime
+		local timeNow = os.time(os.date("!*t"))
+
+		playTime = {
+			['Session'] = timeNow - joinTime,
+			['Total'] = (timeNow - joinTime) + storedTime
+		}
+		TriggerClientEvent('Prefech:sendIdentifiers', source, playTime)
+	end
+end)
+
 
 function ExtractIdentifiers(src)
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do

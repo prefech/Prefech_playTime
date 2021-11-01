@@ -13,19 +13,14 @@
     #####################################################################
 ]]
 
-exports('getPlayTime', function(src)
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
-	steam = ExtractIdentifiers(src)
-	if loadedFile[steam] then
-		local storedTime = loadedFile[steam].playTime
-		local joinTime = loadedFile[steam].JoinTime
-		local timeNow = os.time(os.date("!*t"))
+playTime = nil
+RegisterNetEvent('Prefech:sendIdentifiers')
+AddEventHandler('Prefech:sendIdentifiers', function(_playTime)
+	playTime = _playTime
+end)
 
-		playTime = {
-			['Session'] = timeNow - joinTime,
-			['Total'] = (timeNow - joinTime) + storedTime
-		}
-		return playTime
-	end
+exports('getPlayTime', function(src)
+	TriggerServerEvent('Prefech:getIdentifiers')
+	Citizen.Wait(500)
+	return playTime
 end)
