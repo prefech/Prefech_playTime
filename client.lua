@@ -7,26 +7,25 @@
     #               | |   | | |  __/ ||  __/ (__| | | |                 #
     #               |_|   |_|  \___|_| \___|\___|_| |_|                 #
     #                                                                   #
-    #             Prefech_PlayTime By Prefech 28-10-2021                #
+    #             Prefech_playTime By Prefech 31-10-2021                #
     #                         www.prefech.com                           #
     #                                                                   #
     #####################################################################
 ]]
 
+exports('getPlayTime', function(src)
+	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
+	local loadedFile = json.decode(loadFile)
+	steam = ExtractIdentifiers(src)
+	if loadedFile[steam] then
+		local storedTime = loadedFile[steam].playTime
+		local joinTime = loadedFile[steam].JoinTime
+		local timeNow = os.time(os.date("!*t"))
 
-author 'Prefech'
-description 'Prefech_PlayTime'
-version '1.0.1'
-
--- Server Scripts
-server_scripts {
-    'server.lua'
-}
-
--- Client Scripts
-client_scripts {
-    'client.lua'
-}
-
-game 'gta5'
-fx_version 'cerulean'
+		playTime = {
+			['Session'] = timeNow - joinTime,
+			['Total'] = (timeNow - joinTime) + storedTime
+		}
+		return playTime
+	end
+end)

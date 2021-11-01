@@ -1,5 +1,5 @@
 {
 	"date": "Oct 22, 2021",
-	"version": "1.0.0",
-	"changelog": ""
+	"version": "1.0.1",
+	"changelog": "Added client side access to the export"
 }
