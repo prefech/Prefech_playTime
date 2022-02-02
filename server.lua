@@ -15,35 +15,44 @@
 
 SetHttpHandler(function(req, res)
     if req.path == '/info' then
-        res.send(LoadResourceFile(GetCurrentResourceName(), "playTime.json"))
+		local result = MySQL.query.await('SELECT * FROM prefech_playtime', {})
+		playTime = {}
+		for k,v in pairs(result) do
+			playTime[v.steam_hex] = {
+				['playTime'] = v.playTime,
+				['lastJoin'] = v.lastJoin,
+				['lastLeave'] = v.lastLeave
+			}
+		end
+
+        res.send(json.encode(playTime))
         return
     end
 end)
 
 RegisterCommand('getPlayTime', function(source, args, RawCommand)
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
 	if args[1] then
-		steam = ExtractIdentifiers(source) 
+		steam = ExtractIdentifiers(args[1])
 	else
-		steam = ExtractIdentifiers(source) 
+		steam = ExtractIdentifiers(source)
 	end
-	if loadedFile[steam] then
-		local storedTime = loadedFile[steam].playTime
-		local joinTime = loadedFile[steam].JoinTime
+
+	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result[1] ~= nil then
+		local storedTime = result[1].playTime
+		local joinTime = result[1].lastJoin
 		local timeNow = os.time(os.date("!*t"))
 
-		TriggerClientEvent('chat:addMessage', -1, { args = {"Prefech", GetPlayerName(source).."'s playtime: "..SecondsToClock((timeNow - joinTime) + storedTime)} })
+		TriggerClientEvent('chat:addMessage', source, { args = {"Prefech", GetPlayerName(source).."'s playtime: "..SecondsToClock((timeNow - joinTime) + storedTime)} })
 	end
 end)
 
 exports('getPlayTime', function(src)
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
 	steam = ExtractIdentifiers(src)
-	if loadedFile[steam] then
-		local storedTime = loadedFile[steam].playTime
-		local joinTime = loadedFile[steam].JoinTime
+	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result[1] ~= nil then
+		local storedTime = result[1].playTime
+		local joinTime = result[1].lastJoin
 		local timeNow = os.time(os.date("!*t"))
 
 		playTime = {
@@ -54,79 +63,23 @@ exports('getPlayTime', function(src)
 	end
 end)
 
-function SecondsToClock(seconds)
-	local days = math.floor(seconds / 86400)
-	seconds = seconds - days * 86400
-	local hours = math.floor(seconds / 3600 )
-	seconds = seconds - hours * 3600
-	local minutes = math.floor(seconds / 60) 
-	seconds = seconds - minutes * 60
-
-	if days == 0 and hours == 0 and minutes == 0 then
-		return string.format("%d seconds.", seconds)
-	elseif days == 0 and hours == 0 then
-		return string.format("%d minutes, %d seconds.", minutes, seconds)
-	elseif days == 0 then
-		return string.format("%d hours, %d minutes, %d seconds.", hours, minutes, seconds)
-	else
-		return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)	
-	end
-	return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)
-  end
-
 RegisterNetEvent('playerJoining')
 AddEventHandler('playerJoining', function(spawn)
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
-	local steam = ExtractIdentifiers(source)
-	if loadedFile[steam] then
-		if loadedFile[steam].LeaveTime ~= 0 then
-			updateTab = {
-				['playTime'] = loadedFile[steam].playTime,
-				['JoinTime'] = os.time(os.date("!*t")),
-				['LeaveTime'] = 0
-			}
-			loadedFile[steam] = updateTab
-		end
-	else
-		newTab = {
-			['playTime'] = 0,
-			['JoinTime'] = os.time(os.date("!*t")),
-			['LeaveTime'] = 0
-		}
-		loadedFile[steam] = newTab
-	end
-	SaveResourceFile(GetCurrentResourceName(), "playTime.json", json.encode(loadedFile), -1)
+	playerJoin(source)
 end)
 
 RegisterNetEvent('playerDropped')
 AddEventHandler('playerDropped', function(reason)
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
-	local steam = ExtractIdentifiers(source) 
-	if loadedFile[steam] then
-		if loadedFile[steam].LeaveTime == 0 then
-			local playTime = os.time(os.date("!*t")) - tonumber(loadedFile[steam].JoinTime)
-			updateTab = {
-				['playTime'] = loadedFile[steam].playTime + playTime,
-				['JoinTime'] = loadedFile[steam].JoinTime,
-				['LeaveTime'] = os.time(os.date("!*t"))
-			}
-			loadedFile[steam] = updateTab
-			SaveResourceFile(GetCurrentResourceName(), "playTime.json", json.encode(loadedFile), -1)
-		end
-	end
+	playerDrop(source)
 end)
 
 RegisterNetEvent('Prefech:getIdentifiers')
 AddEventHandler('Prefech:getIdentifiers', function()
-
-	local loadFile = LoadResourceFile(GetCurrentResourceName(), "playTime.json")
-	local loadedFile = json.decode(loadFile)
 	steam = ExtractIdentifiers(source)
-	if loadedFile[steam] then
-		local storedTime = loadedFile[steam].playTime
-		local joinTime = loadedFile[steam].JoinTime
+	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result[1] ~= nil then
+		local storedTime = result[1].playTime
+		local joinTime = result[1].lastJoin
 		local timeNow = os.time(os.date("!*t"))
 
 		playTime = {
@@ -137,6 +90,28 @@ AddEventHandler('Prefech:getIdentifiers', function()
 	end
 end)
 
+function playerJoin()
+	local steam = ExtractIdentifiers(source)
+	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result[1] ~= nil then
+		MySQL.query.await('UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = ?', {os.time(os.date("!*t")), steam})
+	else
+		MySQL.query.await('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
+	end
+end
+
+function playerDrop()
+	local timeNow = os.time(os.date("!*t"))
+	local steam = ExtractIdentifiers(source)
+	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+
+	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result[1] ~= nil then
+		local playTime = timeNow - result[1].lastJoin
+		print(playTime)
+		MySQL.query.await('UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = ?', {(playTime + result[1].playTime), timeNow, steam})
+	end
+end
 
 function ExtractIdentifiers(src)
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
@@ -148,28 +123,25 @@ function ExtractIdentifiers(src)
 	return nil
 end
 
-function has_value (tab, val)
-    for i, v in ipairs (tab) do
-        if (v == val) then
-            return true
-        end
-    end
-    return false
-end
+function SecondsToClock(seconds)
+	local days = math.floor(seconds / 86400)
+	seconds = seconds - days * 86400
+	local hours = math.floor(seconds / 3600 )
+	seconds = seconds - hours * 3600
+	local minutes = math.floor(seconds / 60)
+	seconds = seconds - minutes * 60
 
-function removebyKey(tab, val)
-    for i, v in ipairs (tab) do 
-        if (v == val) then
-          tab[i] = nil
-        end
-    end
+	if days == 0 and hours == 0 and minutes == 0 then
+		return string.format("%d seconds.", seconds)
+	elseif days == 0 and hours == 0 then
+		return string.format("%d minutes, %d seconds.", minutes, seconds)
+	elseif days == 0 then
+		return string.format("%d hours, %d minutes, %d seconds.", hours, minutes, seconds)
+	else
+		return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)
+	end
+	return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)
 end
-
-function tablelength(T)
-	local count = 0
-	for _ in pairs(T) do count = count + 1 end
-	return count
-  end
 
 -- version check
 Citizen.CreateThread(
@@ -177,29 +149,20 @@ Citizen.CreateThread(
 		local vRaw = LoadResourceFile(GetCurrentResourceName(), 'version.json')
 		if vRaw then
 			local v = json.decode(vRaw)
-			PerformHttpRequest(
-				'https://raw.githubusercontent.com/Prefech/Prefech_playTime/master/version.json',
-				function(code, res, headers)
-					if code == 200 then
-						local rv = json.decode(res)
-						if rv.version ~= v.version then
-							print(
-								([[^1-------------------------------------------------------
+			PerformHttpRequest('https://raw.githubusercontent.com/Prefech/Prefech_playTime/master/version.json', function(code, res, headers)
+				if code == 200 then
+					local rv = json.decode(res)
+					if rv.version ~= v.version then
+						print(([[^1-------------------------------------------------------
 ^1Prefech_playTime
 ^1UPDATE: %s AVAILABLE
 ^1CHANGELOG: %s
-^1-------------------------------------------------------^0]]):format(
-									rv.version,
-									rv.changelog
-								)
-							)
-						end
-					else
-						print('^1Prefech_playTime unable to check version^0')
+^1-------------------------------------------------------^0]]):format(rv.version, rv.changelog))
 					end
-				end,
-				'GET'
-			)
+				else
+					print('^1Prefech_playTime unable to check version^0')
+				end
+			end, 'GET')
 		end
 	end
 )
