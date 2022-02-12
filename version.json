@@ -1,5 +1,5 @@
 {
-	"date": "Feb 2, 2021",
-	"version": "1.0.2",
-	"changelog": "Moved storage to SQL Database"
+	"date": "Feb 12, 2021",
+	"version": "1.0.3",
+	"changelog": "Fixed:\n• SQL issue."
 }

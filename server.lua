@@ -64,14 +64,10 @@ exports('getPlayTime', function(src)
 end)
 
 RegisterNetEvent('playerJoining')
-AddEventHandler('playerJoining', function(spawn)
-	playerJoin(source)
-end)
+AddEventHandler('playerJoining', playerJoin)
 
 RegisterNetEvent('playerDropped')
-AddEventHandler('playerDropped', function(reason)
-	playerDrop(source)
-end)
+AddEventHandler('playerDropped', playerDrop)
 
 RegisterNetEvent('Prefech:getIdentifiers')
 AddEventHandler('Prefech:getIdentifiers', function()
@@ -92,24 +88,30 @@ end)
 
 function playerJoin()
 	local steam = ExtractIdentifiers(source)
-	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
-	if result[1] ~= nil then
-		MySQL.query.await('UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = ?', {os.time(os.date("!*t")), steam})
+	if steam ~= nil then
+		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = '?'", {steam})
+		if result[1] ~= nil then
+			MySQL.query.await("UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = '?'", {os.time(os.date("!*t")), steam})
+		else
+			MySQL.query.await('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
+		end
 	else
-		MySQL.query.await('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
+		print("^1Prefech_playTime: Error! Player "..GetPlayerName(source).." is connected without steam and playtime will not be recorded.^0")
 	end
 end
 
 function playerDrop()
 	local timeNow = os.time(os.date("!*t"))
 	local steam = ExtractIdentifiers(source)
-	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if steam ~= nil then
+		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = '?'", {steam})
 
-	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
-	if result[1] ~= nil then
-		local playTime = timeNow - result[1].lastJoin
-		print(playTime)
-		MySQL.query.await('UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = ?', {(playTime + result[1].playTime), timeNow, steam})
+		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = '?'", {steam})
+		if result[1] ~= nil then
+			local playTime = timeNow - result[1].lastJoin
+			print(playTime)
+			MySQL.query.await("UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = '?'", {(playTime + result[1].playTime), timeNow, steam})
+		end
 	end
 end
 

@@ -16,7 +16,7 @@
 
 author 'Prefech'
 description 'Prefech_PlayTime'
-version '1.0.2'
+version '1.0.3'
 
 -- Server Scripts
 server_scripts {
