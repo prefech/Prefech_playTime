@@ -12,29 +12,38 @@
 	See how long they have been playing on your server!<br>
 </h4>
 
-## 🛠  Requirements
-### Requirements
-- FiveM FXServer
+> ### Download:
+> - [Github](https://github.com/prefech/Prefech_playTime)
+> - [Download](https://github.com/prefech/Prefech_playTime/releases/latest)
 
-## ✅ Main Features
-- Saves the playtime of every player
-- External acessable info you can use on your website! (SERVER_IP:PORT/Prefech_playTime/info)
-- Export function to get the total play time and current session time in any resource you need it.
- - Export will return a table with the values in seconds.
- - `exports.Prefech_PlayTime:getPlayTime(PLAYER_ID)`
- - want to give players access to certain things after being x amount of time online. you can simpliy check with the export if you have played long enough!
+>### Requirements
+> - FiveM FXServer
+> - OxMySQL
+>   - [Forum Topic](https://forum.cfx.re/t/standalone-oxmysql-lightweight-mysql-wrapper/4755120)
+>   - [Download](https://github.com/overextended/oxmysql/releases/latest)
 
-## Commands
-- `/getPlayTime [PlayerID]`
- - The player ID is optional.
+> ### Main Features
+> - Saves the playtime of every player
+> - External accessible info you can use on your website! (SERVER_IP:PORT/Prefech_playTime/info)
+> - Export function to get the total play time and current session time in any resource you need it.
+>   - Export will return a table with the values in seconds.
+>   - `exports.Prefech_PlayTime:getPlayTime(PLAYER_ID)`
+>   - Want to give players access to certain things after being x amount of time online. You can simply check with the export if you have played long enough!
 
-# Download & Installation
-1. Download the files
-2. Put the Prefech_PlayTime folder in the server resource directory
-3. Add this to your `server.cfg`
-```
-ensure Prefech_PlayTime
-```
+> ### Commands
+> - `/getPlayTime [PlayerID]`
+>   - The `PlayerID` is optional.
+
+> ### Download & Installation
+> 1. Download the files
+> 2. Put the Prefech_PlayTime folder in the server resource directory
+> 3. Add this to your `server.cfg`
+> ```
+> ensure Prefech_PlayTime
+> ```
+> 4. Upload the SQL to your database.
+
+https://github.com/prefech/Prefech_playTime
 
 
 ### For more support join my discord: https://discord.gg/prefech
