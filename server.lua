@@ -63,11 +63,34 @@ exports('getPlayTime', function(src)
 	end
 end)
 
-RegisterNetEvent('playerJoining')
-AddEventHandler('playerJoining', playerJoin)
+AddEventHandler('playerJoining', function(source, oldID)
+	local steam = ExtractIdentifiers(source)
+	if steam ~= nil then
+		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+		if result[1] ~= nil then
+			MySQL.query.await("UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = ?", {os.time(os.date("!*t")), steam})
+		else
+			MySQL.query.await('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
+		end
+	else
+		print("^1Prefech_playTime: Error! Player "..GetPlayerName(source).." is connected without steam and playtime will not be recorded.^0")
+	end
+end)
 
-RegisterNetEvent('playerDropped')
-AddEventHandler('playerDropped', playerDrop)
+AddEventHandler('playerDropped', function(reason)
+	local timeNow = os.time(os.date("!*t"))
+	local steam = ExtractIdentifiers(source)
+	if steam ~= nil then
+		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+
+		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+		if result[1] ~= nil then
+			local playTime = timeNow - result[1].lastJoin
+			print(playTime)
+			MySQL.query.await("UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = ?", {(playTime + result[1].playTime), timeNow, steam})
+		end
+	end
+end)
 
 RegisterNetEvent('Prefech:getIdentifiers')
 AddEventHandler('Prefech:getIdentifiers', function()
@@ -85,35 +108,6 @@ AddEventHandler('Prefech:getIdentifiers', function()
 		TriggerClientEvent('Prefech:sendIdentifiers', source, playTime)
 	end
 end)
-
-function playerJoin()
-	local steam = ExtractIdentifiers(source)
-	if steam ~= nil then
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = '?'", {steam})
-		if result[1] ~= nil then
-			MySQL.query.await("UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = '?'", {os.time(os.date("!*t")), steam})
-		else
-			MySQL.query.await('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
-		end
-	else
-		print("^1Prefech_playTime: Error! Player "..GetPlayerName(source).." is connected without steam and playtime will not be recorded.^0")
-	end
-end
-
-function playerDrop()
-	local timeNow = os.time(os.date("!*t"))
-	local steam = ExtractIdentifiers(source)
-	if steam ~= nil then
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = '?'", {steam})
-
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = '?'", {steam})
-		if result[1] ~= nil then
-			local playTime = timeNow - result[1].lastJoin
-			print(playTime)
-			MySQL.query.await("UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = '?'", {(playTime + result[1].playTime), timeNow, steam})
-		end
-	end
-end
 
 function ExtractIdentifiers(src)
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
@@ -146,25 +140,23 @@ function SecondsToClock(seconds)
 end
 
 -- version check
-Citizen.CreateThread(
-	function()
-		local vRaw = LoadResourceFile(GetCurrentResourceName(), 'version.json')
-		if vRaw then
-			local v = json.decode(vRaw)
-			PerformHttpRequest('https://raw.githubusercontent.com/Prefech/Prefech_playTime/master/version.json', function(code, res, headers)
-				if code == 200 then
-					local rv = json.decode(res)
-					if rv.version ~= v.version then
-						print(([[^1-------------------------------------------------------
+CreateThread(function()
+	local vRaw = LoadResourceFile(GetCurrentResourceName(), 'version.json')
+	if vRaw then
+		local v = json.decode(vRaw)
+		PerformHttpRequest('https://raw.githubusercontent.com/Prefech/Prefech_playTime/master/version.json', function(code, res, headers)
+			if code == 200 then
+				local rv = json.decode(res)
+				if rv.version ~= v.version then
+					print(([[^1-------------------------------------------------------
 ^1Prefech_playTime
 ^1UPDATE: %s AVAILABLE
 ^1CHANGELOG: %s
 ^1-------------------------------------------------------^0]]):format(rv.version, rv.changelog))
-					end
-				else
-					print('^1Prefech_playTime unable to check version^0')
 				end
-			end, 'GET')
-		end
+			else
+				print('^1Prefech_playTime unable to check version^0')
+			end
+		end, 'GET')
 	end
-)
+end)
