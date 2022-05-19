@@ -31,28 +31,26 @@ SetHttpHandler(function(req, res)
 end)
 
 RegisterCommand('getPlayTime', function(source, args, RawCommand)
-	if args[1] then
-		steam = ExtractIdentifiers(args[1])
-	else
-		steam = ExtractIdentifiers(source)
-	end
-
-	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
-	if result[1] ~= nil then
-		local storedTime = result[1].playTime
-		local joinTime = result[1].lastJoin
+	if args[1] then id = args[1] steam = ExtractIdentifiers(args[1]) else id = source steam = ExtractIdentifiers(source) end
+	local result = MySQL.Sync.prepare('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result ~= nil then
+		local storedTime = result.playTime
+		local joinTime = result.lastJoin
 		local timeNow = os.time(os.date("!*t"))
-
-		TriggerClientEvent('chat:addMessage', source, { args = {"Prefech", GetPlayerName(source).."'s playtime: "..SecondsToClock((timeNow - joinTime) + storedTime)} })
+		if source == 0 then
+			print(GetPlayerName(id).."'s playtime: "..SecondsToClock((timeNow - joinTime) + storedTime))
+		else
+			TriggerClientEvent('chat:addMessage', source, { args = {'Prefech', GetPlayerName(id).."'s playtime: "..SecondsToClock((timeNow - joinTime) + storedTime)} })
+		end
 	end
 end)
 
 exports('getPlayTime', function(src)
 	steam = ExtractIdentifiers(src)
-	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
-	if result[1] ~= nil then
-		local storedTime = result[1].playTime
-		local joinTime = result[1].lastJoin
+	local result = MySQL.Sync.prepare('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result ~= nil then
+		local storedTime = result.playTime
+		local joinTime = result.lastJoin
 		local timeNow = os.time(os.date("!*t"))
 
 		playTime = {
@@ -66,11 +64,11 @@ end)
 AddEventHandler('playerJoining', function(source, oldID)
 	local steam = ExtractIdentifiers(source)
 	if steam ~= nil then
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
-		if result[1] ~= nil then
-			MySQL.query.await("UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = ?", {os.time(os.date("!*t")), steam})
+		local result = MySQL.Sync.prepare('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+		if result ~= nil then
+			MySQL.Sync.prepare('UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0, WHERE steam_hex = ?', {os.time(os.date("!*t")), steam})
 		else
-			MySQL.query.await('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
+			MySQL.Sync.prepare('INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);', {steam, os.time(os.date("!*t"))})
 		end
 	else
 		print("^1Prefech_playTime: Error! Player "..GetPlayerName(source).." is connected without steam and playtime will not be recorded.^0")
@@ -81,13 +79,11 @@ AddEventHandler('playerDropped', function(reason)
 	local timeNow = os.time(os.date("!*t"))
 	local steam = ExtractIdentifiers(source)
 	if steam ~= nil then
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
-
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
-		if result[1] ~= nil then
-			local playTime = timeNow - result[1].lastJoin
+		local result = MySQL.Sync.prepare('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+		if result ~= nil then
+			local playTime = timeNow - result.lastJoin
 			print(playTime)
-			MySQL.query.await("UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = ?", {(playTime + result[1].playTime), timeNow, steam})
+			MySQL.Sync.prepare('UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = ?', {(playTime + result.playTime), timeNow, steam})
 		end
 	end
 end)
@@ -95,10 +91,10 @@ end)
 RegisterNetEvent('Prefech:getIdentifiers')
 AddEventHandler('Prefech:getIdentifiers', function()
 	steam = ExtractIdentifiers(source)
-	local result = MySQL.query.await('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
-	if result[1] ~= nil then
-		local storedTime = result[1].playTime
-		local joinTime = result[1].lastJoin
+	local result = MySQL.Sync.prepare('SELECT * FROM prefech_playtime WHERE steam_hex = ?', {steam})
+	if result ~= nil then
+		local storedTime = result.playTime
+		local joinTime = result.lastJoin
 		local timeNow = os.time(os.date("!*t"))
 
 		playTime = {
@@ -128,15 +124,15 @@ function SecondsToClock(seconds)
 	seconds = seconds - minutes * 60
 
 	if days == 0 and hours == 0 and minutes == 0 then
-		return string.format("%d seconds.", seconds)
+		return string.format('%d seconds.', seconds)
 	elseif days == 0 and hours == 0 then
-		return string.format("%d minutes, %d seconds.", minutes, seconds)
+		return string.format('%d minutes, %d seconds.', minutes, seconds)
 	elseif days == 0 then
-		return string.format("%d hours, %d minutes, %d seconds.", hours, minutes, seconds)
+		return string.format('%d hours, %d minutes, %d seconds.', hours, minutes, seconds)
 	else
-		return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)
+		return string.format('%d days, %d hours, %d minutes, %d seconds.', days, hours, minutes, seconds)
 	end
-	return string.format("%d days, %d hours, %d minutes, %d seconds.", days, hours, minutes, seconds)
+	return string.format('%d days, %d hours, %d minutes, %d seconds.', days, hours, minutes, seconds)
 end
 
 -- version check
