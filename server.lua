@@ -90,7 +90,8 @@ end)
 
 RegisterNetEvent("Prefech:getIdentifiers")
 AddEventHandler("Prefech:getIdentifiers", function()
-	steam = ExtractIdentifiers(source)
+		local _source = source
+	steam = ExtractIdentifiers(_source)
 	local result = MySQL.Sync.prepare("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
 	if result ~= nil then
 		local storedTime = result.playTime
@@ -101,7 +102,7 @@ AddEventHandler("Prefech:getIdentifiers", function()
 			["Session"] = timeNow - joinTime,
 			["Total"] = (timeNow - joinTime) + storedTime
 		}
-		TriggerClientEvent("Prefech:sendIdentifiers", source, playTime)
+		TriggerClientEvent("Prefech:sendIdentifiers", _source, playTime)
 	end
 end)
 
