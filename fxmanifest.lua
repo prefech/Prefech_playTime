@@ -16,11 +16,10 @@
 
 author 'Prefech'
 description 'Prefech_PlayTime'
-version '1.0.5b'
+version '1.0.6'
 
 -- Server Scripts
 server_scripts {
-    '@oxmysql/lib/MySQL.lua',
     'server.lua'
 }
 

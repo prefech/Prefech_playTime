@@ -1,5 +1,5 @@
 {
-	"date": "May 19, 2022",
-	"version": "1.0.5b",
-	"changelog": "Hotfix"
+	"date": "Jul 19, 2022",
+	"version": "1.0.6",
+	"changelog": "Fixed:\n• Possible issues with not being able to keep the source value active.\n(<https://github.com/prefech/Prefech_playTime/pull/5>)\n\nRemoved:\n• database requirment.\n\nChanged:\n• Reworked to be Standalone again.\n• Resource is now a drag and drop."
 }

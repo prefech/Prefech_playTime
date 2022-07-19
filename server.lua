@@ -7,35 +7,45 @@
     #               | |   | | |  __/ ||  __/ (__| | | |                 #
     #               |_|   |_|  \___|_| \___|\___|_| |_|                 #
     #                                                                   #
-    #             Prefech_playTime By Prefech 28-10-2021                #
     #                         www.prefech.com                           #
     #                                                                   #
     #####################################################################
 ]]
 
 SetHttpHandler(function(req, res)
-    if req.path == "/info" then
-		local result = MySQL.query.await("SELECT * FROM prefech_playtime", {})
+    if req.path == "/info" then	
+		local result = StartFindKvp('Prefech:PlayTime:')
 		playTime = {}
-		for k,v in pairs(result) do
-			playTime[v.steam_hex] = {
-				["playTime"] = v.playTime,
-				["lastJoin"] = v.lastJoin,
-				["lastLeave"] = v.lastLeave
-			}
-		end
-
-        res.send(json.encode(playTime))
+		if result ~= -1 then
+			local key = true
+			while key do
+				Wait(0)
+				key = FindKvp(result)
+				if key then
+					local value = split(GetResourceKvpString(key), ';')
+					playTime[value[1]] = {
+						["steamhex"] = value[1],
+						["playtime"] = value[2],
+						["lastjoin"] = value[3],
+						["lastleave"] = value[4],
+						["username"] = value[5]
+					}		
+				end
+			end
+			EndFindKvp(result)
+		end	
+		res.send(json.encode(playTime))
         return
     end
 end)
 
 RegisterCommand("getPlayTime", function(source, args, RawCommand)
 	if args[1] then id = args[1] steam = ExtractIdentifiers(args[1]) else id = source steam = ExtractIdentifiers(source) end
-	local result = MySQL.Sync.prepare("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+	local result = GetResourceKvpString('Prefech:PlayTime:'..steam)
 	if result ~= nil then
-		local storedTime = result.playTime
-		local joinTime = result.lastJoin
+		local value = split(result, ';')
+		local storedTime = value[2]
+		local joinTime = value[3]
 		local timeNow = os.time(os.date("!*t"))
 		if source == 0 then
 			print(GetPlayerName(id).."'s playtime: "..SecondsToClock((timeNow - joinTime) + storedTime))
@@ -46,11 +56,12 @@ RegisterCommand("getPlayTime", function(source, args, RawCommand)
 end)
 
 exports("getPlayTime", function(src)
-	steam = ExtractIdentifiers(src)
-	local result = MySQL.Sync.prepare("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+	local steam = ExtractIdentifiers(src)
+	local result = GetResourceKvpString('Prefech:PlayTime:'..steam)
 	if result ~= nil then
-		local storedTime = result.playTime
-		local joinTime = result.lastJoin
+		local value = split(result, ';')
+		local storedTime = value[2]
+		local joinTime = value[3]
 		local timeNow = os.time(os.date("!*t"))
 
 		playTime = {
@@ -62,13 +73,15 @@ exports("getPlayTime", function(src)
 end)
 
 AddEventHandler("playerJoining", function(source, oldID)
-	local steam = ExtractIdentifiers(source)
+	local src = source
+	local steam = ExtractIdentifiers(src)
 	if steam ~= nil then
-		local result = MySQL.Sync.prepare("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+		local result = GetResourceKvpString('Prefech:PlayTime:'..steam)		
 		if result ~= nil then
-			MySQL.Sync.prepare("UPDATE prefech_playtime SET lastJoin = ?, lastLeave = 0 WHERE steam_hex = ?", {os.time(os.date("!*t")), steam})
+			local value = split(result, ';')
+			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';'..value[2]..';'..os.time(os.date("!*t"))..';0;'..GetPlayerName(src))
 		else
-			MySQL.Sync.prepare("INSERT INTO prefech_playtime (id, steam_hex, playTime, lastJoin, lastLeave) VALUES (NULL, ?, 0, ?, 0);", {steam, os.time(os.date("!*t"))})
+			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';0;'..os.time(os.date("!*t"))..';0;'..GetPlayerName(src))
 		end
 	else
 		print("^1Prefech_playTime: Error! Player "..GetPlayerName(source).." is connected without steam and playtime will not be recorded.^0")
@@ -76,32 +89,35 @@ AddEventHandler("playerJoining", function(source, oldID)
 end)
 
 AddEventHandler("playerDropped", function(reason)
+	local src = source
 	local timeNow = os.time(os.date("!*t"))
-	local steam = ExtractIdentifiers(source)
+	local steam = ExtractIdentifiers(src)
 	if steam ~= nil then
-		local result = MySQL.Sync.prepare("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
-		if result ~= nil then
-			local playTime = timeNow - result.lastJoin
-			print(playTime)
-			MySQL.Sync.prepare("UPDATE prefech_playtime SET playTime = ?, lastLeave = ? WHERE steam_hex = ?", {(playTime + result.playTime), timeNow, steam})
+		local result = GetResourceKvpString('Prefech:PlayTime:'..steam)
+		if result ~= nil then			
+			local value = split(result, ';')
+			local playTime = timeNow - tonumber(value[3])			
+			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';'..tonumber(value[2]) + playTime..';'..value[3]..';'..os.time(os.date("!*t"))..';'..GetPlayerName(src))
 		end
 	end
 end)
 
 RegisterNetEvent("Prefech:getIdentifiers")
 AddEventHandler("Prefech:getIdentifiers", function()
-	steam = ExtractIdentifiers(source)
-	local result = MySQL.Sync.prepare("SELECT * FROM prefech_playtime WHERE steam_hex = ?", {steam})
+	local src = source
+	local steam = ExtractIdentifiers(src)
+	local result = GetResourceKvpString('Prefech:PlayTime:'..steam)
 	if result ~= nil then
-		local storedTime = result.playTime
-		local joinTime = result.lastJoin
+		local value = split(result, ';')
+		local storedTime = value[2]
+		local joinTime = value[3]
 		local timeNow = os.time(os.date("!*t"))
 
 		playTime = {
 			["Session"] = timeNow - joinTime,
 			["Total"] = (timeNow - joinTime) + storedTime
 		}
-		TriggerClientEvent("Prefech:sendIdentifiers", source, playTime)
+		return playTime
 	end
 end)
 
@@ -114,6 +130,17 @@ function ExtractIdentifiers(src)
     end
 	return nil
 end
+
+function split(inputstr, sep)
+	if sep == nil then
+	   sep = "%s"
+	end
+	local t={}
+	for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+	   table.insert(t, str)
+	end
+	return t
+ end
 
 function SecondsToClock(seconds)
 	local days = math.floor(seconds / 86400)
