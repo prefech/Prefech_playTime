@@ -16,10 +16,11 @@
 
 author 'Prefech'
 description 'Prefech_PlayTime'
-version '1.0.6'
+version '1.0.7'
 
 -- Server Scripts
 server_scripts {
+    'config.lua',
     'server.lua'
 }
 

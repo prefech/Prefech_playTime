@@ -13,30 +13,84 @@
 ]]
 
 SetHttpHandler(function(req, res)
-    if req.path == "/info" then	
-		local result = StartFindKvp('Prefech:PlayTime:')
-		playTime = {}
-		if result ~= -1 then
-			local key = true
-			while key do
-				Wait(0)
-				key = FindKvp(result)
-				if key then
-					local value = split(GetResourceKvpString(key), ';')
-					playTime[value[1]] = {
-						["steamhex"] = value[1],
-						["playtime"] = value[2],
-						["lastjoin"] = value[3],
-						["lastleave"] = value[4],
-						["username"] = value[5]
-					}		
+	playTime = {}
+    if req.path == "/info" or req.path == "/info.json" then
+		if req.headers['Authentication'] then
+			if req.headers['Authentication'] == 'token '..Config.Token then
+				local result = StartFindKvp('Prefech:PlayTime:')
+				playTime['message'] = '200: Success'
+				playTime['code'] = 200
+				playTime['players'] = {}
+				if result ~= -1 then
+					local key = true
+					while key do
+						Wait(0)
+						key = FindKvp(result)
+						if key then
+							local value = split(GetResourceKvpString(key), ';')
+							playTime['players'][value[1]] = {
+								["steam_hex"] = value[1],
+								["playtime"] = value[2],
+								["last_join"] = value[3],
+								["last_leave"] = value[4],
+								["username"] = value[5]
+							}
+						end
+					end
+					EndFindKvp(result)
 				end
+			else
+				playTime['message'] = '401: Access Denied'
+				playTime['code'] = 0			
 			end
-			EndFindKvp(result)
-		end	
+		else
+			playTime['message'] = '400: Missing Token'
+			playTime['code'] = 0
+		end
+		res.writeHead(200, {['Content-Type'] = 'application/json'})
 		res.send(json.encode(playTime))
         return
     end
+
+	local result = StartFindKvp('Prefech:PlayTime:')
+	playTime['message'] = '200: Success'
+	playTime['code'] = 200
+	if result ~= -1 then
+		local key = true
+		while key do
+			Wait(0)
+			key = FindKvp(result)
+			if key then
+				local value = split(GetResourceKvpString(key), ';')
+				if req.path == "/info/"..value[1] then
+					if req.headers['Authentication'] then
+						if req.headers['Authentication'] == 'token '..Config.Token then
+							playTime['player'] = {
+								["steam_hex"] = value[1],
+								["playtime"] = value[2],
+								["last_join"] = value[3],
+								["last_leave"] = value[4],
+								["username"] = value[5]
+							}
+						else
+							playTime['message'] = '401: Access Denied'
+							playTime['code'] = 0		
+						end
+					else
+						playTime['message'] = '400: Missing Token'
+						playTime['code'] = 0
+					end
+					res.writeHead(200, {['Content-Type'] = 'application/json'})
+					res.send(json.encode(playTime))
+				end
+			end
+		end
+		EndFindKvp(result)
+	end
+	playTime['message'] = '404: Not Found'
+	playTime['code'] = 0	
+	res.writeHead(200, {['Content-Type'] = 'application/json'})
+	res.send(json.encode(playTime))
 end)
 
 RegisterCommand("getPlayTime", function(source, args, RawCommand)

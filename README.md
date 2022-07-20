@@ -38,7 +38,7 @@
 - External accessible info you can use on your website! (SERVER_IP:PORT/Prefech_playTime/info)
 - Export function to get the total play time and current session time in any resource you need it.
   - Export will return a table with the values in seconds.
-  - `exports.Prefech_PlayTime:getPlayTime(PLAYER_ID)`
+  - `exports.Prefech_playTime:getPlayTime(PLAYER_ID)`
   - Want to give players access to certain things after being x amount of time online. You can simply check with the export if you have played long enough!
 
 ### 📌 Commands
@@ -47,10 +47,11 @@
 
 ### 🔧 Download & Installation
 1. Download the files
-2. Put the Prefech_PlayTime folder in the server resource directory
-3. Add this to your `server.cfg`
+2. Put the Prefech_playTime folder in the server resource directory
+3. Set a custom token in the `config.lua` (This token is used for the api: `http://{SERVERIP}:{PORT}/Prefech_playTime/info`)
+4. Add this to your `server.cfg`
 ```
-ensure Prefech_PlayTime
+ensure Prefech_playTime
 ```
 
 ### 📈 Resmon Values

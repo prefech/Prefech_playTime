@@ -1,5 +1,5 @@
 {
-	"date": "Jul 19, 2022",
-	"version": "1.0.6",
-	"changelog": "Fixed:\n• Possible issues with not being able to keep the source value active.\n(<https://github.com/prefech/Prefech_playTime/pull/5>)\n\nRemoved:\n• database requirment.\n\nChanged:\n• Reworked to be Standalone again.\n• Resource is now a drag and drop."
+	"date": "Jul 20, 2022",
+	"version": "1.0.7",
+	"changelog": "Added:\n• Authentication to the http://{SERVERIP}:{PORT}/Prefech_playTime/info API.\n\nChanged:\n• Set content type for api to json.\n\nNotes:\n• Updated the docs: https://docs.prefech.com/playtime/"
 }
