@@ -1,5 +1,5 @@
 {
 	"date": "Jul 20, 2022",
-	"version": "1.0.7",
-	"changelog": "Added:\n• Authentication to the http://{SERVERIP}:{PORT}/Prefech_playTime/info API.\n\nChanged:\n• Set content type for api to json.\n\nNotes:\n• Updated the docs: https://docs.prefech.com/playtime/"
+	"version": "1.0.8",
+	"changelog": "Added:\n• API support for discord ids"
 }

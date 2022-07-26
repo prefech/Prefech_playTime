@@ -30,6 +30,7 @@ SetHttpHandler(function(req, res)
 							local value = split(GetResourceKvpString(key), ';')
 							playTime['players'][value[1]] = {
 								["steam_hex"] = value[1],
+								["discord_id"] = value[6],
 								["playtime"] = value[2],
 								["last_join"] = value[3],
 								["last_leave"] = value[4],
@@ -67,6 +68,29 @@ SetHttpHandler(function(req, res)
 						if req.headers['Authentication'] == 'token '..Config.Token then
 							playTime['player'] = {
 								["steam_hex"] = value[1],
+								["discord_id"] = value[6],
+								["playtime"] = value[2],
+								["last_join"] = value[3],
+								["last_leave"] = value[4],
+								["username"] = value[5]
+							}
+						else
+							playTime['message'] = '401: Access Denied'
+							playTime['code'] = 0		
+						end
+					else
+						playTime['message'] = '400: Missing Token'
+						playTime['code'] = 0
+					end
+					res.writeHead(200, {['Content-Type'] = 'application/json'})
+					res.send(json.encode(playTime))
+				end
+				if req.path == "/info/"..value[6] then
+					if req.headers['Authentication'] then
+						if req.headers['Authentication'] == 'token '..Config.Token then
+							playTime['player'] = {
+								["steam_hex"] = value[1],
+								["discord_id"] = value[6],
 								["playtime"] = value[2],
 								["last_join"] = value[3],
 								["last_leave"] = value[4],
@@ -129,13 +153,14 @@ end)
 AddEventHandler("playerJoining", function(source, oldID)
 	local src = source
 	local steam = ExtractIdentifiers(src)
+	local discord = ExtractDiscordIdentifiers(src)
 	if steam ~= nil then
 		local result = GetResourceKvpString('Prefech:PlayTime:'..steam)		
 		if result ~= nil then
 			local value = split(result, ';')
-			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';'..value[2]..';'..os.time(os.date("!*t"))..';0;'..GetPlayerName(src))
+			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';'..value[2]..';'..os.time(os.date("!*t"))..';0;'..GetPlayerName(src)..';'..discord)
 		else
-			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';0;'..os.time(os.date("!*t"))..';0;'..GetPlayerName(src))
+			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';0;'..os.time(os.date("!*t"))..';0;'..GetPlayerName(src)..';'..discord)
 		end
 	else
 		print("^1Prefech_playTime: Error! Player "..GetPlayerName(source).." is connected without steam and playtime will not be recorded.^0")
@@ -146,12 +171,13 @@ AddEventHandler("playerDropped", function(reason)
 	local src = source
 	local timeNow = os.time(os.date("!*t"))
 	local steam = ExtractIdentifiers(src)
+	local discord = ExtractDiscordIdentifiers(src)
 	if steam ~= nil then
 		local result = GetResourceKvpString('Prefech:PlayTime:'..steam)
 		if result ~= nil then			
 			local value = split(result, ';')
 			local playTime = timeNow - tonumber(value[3])			
-			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';'..tonumber(value[2]) + playTime..';'..value[3]..';'..os.time(os.date("!*t"))..';'..GetPlayerName(src))
+			SetResourceKvp('Prefech:PlayTime:'..steam, steam..';'..tonumber(value[2]) + playTime..';'..value[3]..';'..os.time(os.date("!*t"))..';'..GetPlayerName(src)..';'..discord)
 		end
 	end
 end)
@@ -178,7 +204,17 @@ end)
 function ExtractIdentifiers(src)
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
         local id = GetPlayerIdentifier(src, i)
-        if string.find(id, "steam") then
+        if string.find(id, "steam:") then
+           return id
+		end
+    end
+	return nil
+end
+
+function ExtractDiscordIdentifiers(src)
+    for i = 0, GetNumPlayerIdentifiers(src) - 1 do
+        local id = GetPlayerIdentifier(src, i)
+        if string.find(id, "discord:") then
            return id
 		end
     end
